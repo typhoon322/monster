@@ -19,6 +19,7 @@ app.use(async(ctx,next) => {
 });
 
 const mongoose = require('mongoose');
+mongoose.Promise = global.Promise;
 mongoose.connect('mongodb://127.0.0.1:27017/pandashit');
 const Photo = mongoose.model('Photo', {
     url: String,
@@ -33,6 +34,23 @@ router.get('/', async (ctx, next) => {
 
 router.get('/index', async (ctx, next) => {
     await Photo.find({}, function (err, results) {
+        if(err){
+            console.error(err);
+            ctx.response.body = {code: 1, msg: 'Internal Error'};
+          return;
+        }
+      }).then(function (res) {
+        console.log(res);
+          if(res){
+            ctx.response.body = {code: 0, data: res, msg: 'Success'};//以json数据类型返回值
+          }
+      });
+});
+
+
+router.delete('/delete/:id', async (ctx, next) => {
+    await Photo.deleteOne({_id: ctx.params.id}, function (err, results) {
+        console.log(ctx.params);
         if(err){
             console.error(err);
             ctx.response.body = {code: 1, msg: 'Internal Error'};
