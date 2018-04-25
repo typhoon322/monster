@@ -49,18 +49,14 @@ router.get('/index', async (ctx, next) => {
 
 
 router.delete('/delete/:id', async (ctx, next) => {
-    await Photo.deleteOne({_id: ctx.params.id}, function (err, results) {
+    await Photo.deleteOne({_id: ctx.params.id}, function (err) {
         console.log(ctx.params);
         if(err){
             console.error(err);
             ctx.response.body = {code: 1, msg: 'Internal Error'};
           return;
         }
-      }).then(function (res) {
-        console.log(res);
-          if(res){
-            ctx.response.body = {code: 0, data: res, msg: 'Success'};//以json数据类型返回值
-          }
+        ctx.response.body = {code: 0, data: null, msg: 'Success'};//以json数据类型返回值
       });
 });
 
