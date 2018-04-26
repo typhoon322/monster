@@ -25,7 +25,8 @@ const Photo = mongoose.model('Photo', {
     url: String,
     title: String,
     desc: String,
-    createdTime: Date
+    createdTime: Date,
+    lastUpdateTime: Date
 });
 
 router.get('/', async (ctx, next) => {
@@ -47,17 +48,35 @@ router.get('/index', async (ctx, next) => {
       });
 });
 
-
-router.delete('/delete/:id', async (ctx, next) => {
-    await Photo.deleteOne({_id: ctx.params.id}, function (err) {
-        console.log(ctx.params);
+router.get('/photo/:id', async (ctx, next) => {
+    await Photo.findById(ctx.params.id, function (err, results) {
         if(err){
             console.error(err);
             ctx.response.body = {code: 1, msg: 'Internal Error'};
           return;
         }
-        ctx.response.body = {code: 0, data: null, msg: 'Success'};//以json数据类型返回值
+      }).then(function (res) {
+        console.log(res);
+          if(res){
+            ctx.response.body = {code: 0, data: res, msg: 'Success'};//以json数据类型返回值
+          }
       });
+});
+
+router.delete('/photo/:id', async (ctx) => {
+    let id = ctx.params.id;
+     await Photo.deleteOne({_id: id}, (err) => {
+        console.log(ctx.params);
+        if(err){
+            console.error(err);
+            ctx.body = {code: 1, msg: 'Internal Error'};
+          return false;
+        }
+        ctx.body = {code: 0, data: null, msg: 'Success'};//以json数据类型返回值
+        console.log("删除成功 ==》 "+ id);
+        return true;
+      });
+
 });
 
 /**
@@ -68,26 +87,65 @@ router.get('/auth', async (ctx, next) => {
 });
 
 
-router.post('/add', async(ctx) => {
+router.post('/photo', async(ctx) => {
     let body = ctx.request.body;
     console.info(body);
-    const array = body.items;
-    array.forEach(element => {
-        element.createdTime = new Date();
-    });
-
-    await Photo.create(array, function (err, candies) {
+    const photo = body;
+    photo.createdTime = new Date();
+    photo.lastUpdateTime = new Date();
+    await Photo.create(photo, function (err) {
         if(err){
             console.error(err);
             ctx.response.body = {code: 1, msg: 'Internal error'};
-            return;
+            return false;
         }
+        return true;
     }).then(function (res) {
         console.log('==========添加成功=========');
         console.log(res);
         ctx.response.body = {code: 0, msg: 'success'};
     });
 });
+
+router.put('/photo/:id', async (ctx, next) => {
+    console.log(ctx.params);
+    let id = ctx.params.id;
+    console.log("id == "+id);
+    const body = ctx.request.body;
+    const photo = body;
+    photo.lastUpdateTime = new Date();
+    let data = await Photo.updateOne({ _id: id}, photo);
+    console.log(data);
+    if(data){
+        ctx.body = {code: 0, msg: 'success'};
+    }else{
+        ctx.body = {code: 1, msg: 'no photo found'};
+    }
+});
+
+// router.put('/photo/:id', async (ctx, next) => {
+//     console.log(ctx.params);
+//     let id = ctx.params.id;
+//     console.log("id == "+id);
+//     const body = ctx.request.body;
+//     const photo = body;
+//     photo.lastUpdateTime = new Date();
+//     let data= await Photo.updateOne({ _id: id}, (err, raw) => {
+//         if(err){
+//             console.error(err);
+//             ctx.body = {code: 1, msg: 'Internal error'};
+//             return ctx.response.send();
+//         }
+//         // console.log(res);
+//         console.log('findOneAndUpdate === ');
+//         console.log(raw);
+//         ctx.response.body = {code: 0, msg: 'success'};
+//         return true;
+//     });
+//     console.log("<<<<<<<<<<<<<<data>>>>>>>>>>>>>>");
+//     console.log(data);
+// });
+
 
 // var qiniu = require('qiniu');
 
