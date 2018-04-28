@@ -1,3 +1,4 @@
+
 const AsyncUtil = require('./lib/asyncUtil');
 var asyncUtil = new AsyncUtil();
 
@@ -14,7 +15,7 @@ const cors = require('koa-cors');
 app.use(cors());
 
 app.use(async(ctx,next) => {
-    console.log(`Process ${ctx.request.method} ${ctx.request.url}...`)
+    console.log(`Process ${ctx.request.method} ${ctx.request.url} ${ctx.request.headers}...`)
     await next();
 });
 
@@ -29,11 +30,76 @@ const Photo = mongoose.model('Photo', {
     lastUpdateTime: Date
 });
 
+const Admin = mongoose.model('Admin', {
+    userName: String,
+    password: String
+});
+
 router.get('/', async (ctx, next) => {
     ctx.response.body = {code: 0, data: {msg: 'index'}, msg: ''};
 });
 
+// const userName = 'pandamaster';
+
+const jwt = require('jsonwebtoken');
+const secretKey = 'pandamastersercretkeytologin';
+
+router.post('/login',async (ctx, next) => {
+    let reqBody = ctx.request.body;
+    console.log(reqBody);
+    let userName = reqBody.userName;
+    let password = reqBody.password;
+    // await Admin.create({userName: 'pandamaster', password: '184ff021f2a07483d4db9b722d6910d7'}, function (err) {
+    //     if(err){
+    //         console.error(err);
+    //         return false;
+    //     }
+    //     return true;
+    // }).then(function (res) {
+    //     console.log('==========添加Admin成功=========');
+    //     console.log(res);
+    // });
+    await Admin.findOne({userName: 'pandamaster'},  (err, user) => {
+        if(err) throw err;
+        console.log(user);
+        if(!user){
+            ctx.response.body = {code: 1, msg: '你居然忘记了自己的名字ß？'};
+            return;
+        }
+        if(user.password !== password){
+            ctx.response.body = {code: 1, msg: '你是猪嘛？密码错了啊！'};
+            return;
+        }
+        const token = jwt.sign(
+            { 
+                data: user.userName,
+                expiresIn: 60 * 60 
+            }, secretKey, { expiresIn: 60 * 60 });
+        ctx.response.body = {code: 0, data: { token: token }, msg: '可以啊～'};
+    });
+});
+
+function isValidToken(ctx) {
+    let token = (ctx.request.body && ctx.request.body.access_token) || (ctx.request.query && ctx.request.query.access_token) || ctx.request.headers['x-access-token'];
+    console.log('token : ' + token);
+    if(!token){
+        return false;
+    }
+    var decoded = jwt.decode(token, secretKey);
+
+    if(token.expiresIn <= Date.now()){
+        return false;
+    }
+    return true;
+}
+
 router.get('/index', async (ctx, next) => {
+
+   if(!isValidToken(ctx)){
+        ctx.response.body = {code: -1, msg: 'Invalid Token'};
+        return;
+   }
+
     await Photo.find({}, function (err, results) {
         if(err){
             console.error(err);
