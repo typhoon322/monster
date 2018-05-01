@@ -72,22 +72,28 @@ router.post('/login',async (ctx, next) => {
         }
         const token = jwt.sign(
             { 
-                data: user.userName,
-                expiresIn: 60 * 60 
+                data: user,
+                expiresIn: (60 * 60 )
             }, secretKey, { expiresIn: 60 * 60 });
+        console.log(token);
         ctx.response.body = {code: 0, data: { token: token }, msg: '可以啊～'};
     });
 });
 
 function isValidToken(ctx) {
-    let token = (ctx.request.body && ctx.request.body.access_token) || (ctx.request.query && ctx.request.query.access_token) || ctx.request.headers['x-access-token'];
-    console.log('token : ' + token);
+    let token = (ctx.request.body && ctx.request.body.access_token) || (ctx.request.query && ctx.request.query.access_token) || ctx.request.header["x-access-token"];
+    
+    console.log('token : ');
+    console.log(token);
+    console.log('x-access-token');
+    console.log(ctx.request.header['x-access-token']);
+
     if(!token){
         return false;
     }
     var decoded = jwt.decode(token, secretKey);
-
-    if(token.expiresIn <= Date.now()){
+    console.log(decoded);
+    if(token.exp <= Date.now()){
         return false;
     }
     return true;
@@ -179,14 +185,24 @@ router.put('/photo/:id', async (ctx, next) => {
     console.log("id == "+id);
     const body = ctx.request.body;
     const photo = body;
+    console.log(photo);
     photo.lastUpdateTime = new Date();
-    let data = await Photo.updateOne({ _id: id}, photo);
-    console.log(data);
-    if(data){
-        ctx.body = {code: 0, msg: 'success'};
-    }else{
-        ctx.body = {code: 1, msg: 'no photo found'};
+    let error = null;
+    let item = null;
+   let data = await Photo.findOneAndUpdate({ _id: id}, photo);
+   console.log(data);
+    if (!data) {
+      ctx.response.body = { code: 1, msg: "update faild" };
+      return;
     }
+    ctx.response.body = { code: 0, data: data, msg: "update success" };
+    console.log(ctx.response.body);
+    // if(error){
+    //     ctx.body = { code: 1, msg: error };
+    //     return;
+    // }
+    // ctx.body = { code: 0, data: data, msg: "update success" };
+    // ctx.response.body = { code: 0, data: data, msg: "update success" };
 });
 
 // router.put('/photo/:id', async (ctx, next) => {
