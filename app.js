@@ -26,6 +26,7 @@ const Photo = mongoose.model('Photo', {
     url: String,
     title: String,
     desc: String,
+    isShow: Boolean,
     createdTime: Date,
     lastUpdateTime: Date
 });
@@ -61,12 +62,14 @@ router.post('/login',async (ctx, next) => {
     // });
     await Admin.findOne({userName: 'pandamaster'},  (err, user) => {
         if(err) throw err;
-        console.log(user);
+        console.log('user', user);
         if(!user){
+            console.log('用户名错❌');
             ctx.response.body = {code: 1, msg: '你居然忘记了自己的名字ß？'};
             return;
         }
         if(user.password !== password){
+            console.log('密码错❌');
             ctx.response.body = {code: 1, msg: '你是猪嘛？密码错了啊！'};
             return;
         }
@@ -81,19 +84,17 @@ router.post('/login',async (ctx, next) => {
 });
 
 function isValidToken(ctx) {
-    let token = (ctx.request.body && ctx.request.body.access_token) || (ctx.request.query && ctx.request.query.access_token) || ctx.request.header["x-access-token"];
-    
-    console.log('token : ');
-    console.log(token);
-    console.log('x-access-token');
-    console.log(ctx.request.header['x-access-token']);
+    let token = (ctx.request.body && ctx.request.body.access_token) 
+        || (ctx.request.query && ctx.request.query.access_token) 
+        || ctx.request.header["x-access-token"];
 
     if(!token){
         return false;
     }
     var decoded = jwt.decode(token, secretKey);
-    console.log(decoded);
+    // console.log(decoded);
     if(token.exp <= Date.now()){
+        console.error('token expire!');
         return false;
     }
     return true;
@@ -128,7 +129,7 @@ router.get('/photo/:id', async (ctx, next) => {
           return;
         }
       }).then(function (res) {
-        console.log(res);
+        console.log('res: ', res);
           if(res){
             ctx.response.body = {code: 0, data: res, msg: 'Success'};//以json数据类型返回值
           }
@@ -145,7 +146,7 @@ router.delete('/photo/:id', async (ctx) => {
           return false;
         }
         ctx.body = {code: 0, data: null, msg: 'Success'};//以json数据类型返回值
-        console.log("删除成功 ==》 "+ id);
+        console.log("删除成功 ==》 id: ", id);
         return true;
       });
 
@@ -174,60 +175,25 @@ router.post('/photo', async(ctx) => {
         return true;
     }).then(function (res) {
         console.log('==========添加成功=========');
-        console.log(res);
+        console.log('res: ', res);
         ctx.response.body = {code: 0, msg: 'success'};
     });
 });
 
 router.put('/photo/:id', async (ctx, next) => {
-    console.log(ctx.params);
+    console.log('params: ', ctx.params);
     let id = ctx.params.id;
-    console.log("id == "+id);
     const body = ctx.request.body;
     const photo = body;
-    console.log(photo);
     photo.lastUpdateTime = new Date();
-    let error = null;
-    let item = null;
-   let data = await Photo.findOneAndUpdate({ _id: id}, photo);
-   console.log(data);
+    let data = await Photo.findOneAndUpdate({ _id: id}, photo);
     if (!data) {
-      ctx.response.body = { code: 1, msg: "update faild" };
-      return;
+        ctx.response.body = { code: 1, msg: "update faild" };
+        return;
     }
+    console.log('response-data: ', data);
     ctx.response.body = { code: 0, data: data, msg: "update success" };
-    console.log(ctx.response.body);
-    // if(error){
-    //     ctx.body = { code: 1, msg: error };
-    //     return;
-    // }
-    // ctx.body = { code: 0, data: data, msg: "update success" };
-    // ctx.response.body = { code: 0, data: data, msg: "update success" };
 });
-
-// router.put('/photo/:id', async (ctx, next) => {
-//     console.log(ctx.params);
-//     let id = ctx.params.id;
-//     console.log("id == "+id);
-//     const body = ctx.request.body;
-//     const photo = body;
-//     photo.lastUpdateTime = new Date();
-//     let data= await Photo.updateOne({ _id: id}, (err, raw) => {
-//         if(err){
-//             console.error(err);
-//             ctx.body = {code: 1, msg: 'Internal error'};
-//             return ctx.response.send();
-//         }
-//         // console.log(res);
-//         console.log('findOneAndUpdate === ');
-//         console.log(raw);
-//         ctx.response.body = {code: 0, msg: 'success'};
-//         return true;
-//     });
-//     console.log("<<<<<<<<<<<<<<data>>>>>>>>>>>>>>");
-//     console.log(data);
-// });
-
 
 // var qiniu = require('qiniu');
 
@@ -249,6 +215,6 @@ router.put('/photo/:id', async (ctx, next) => {
 
 app.use(router.routes()).use(router.allowedMethods);
 
-app.listen(3020,function(){
-    console.log('CORS-enabled web server listening on port 3020');
+app.listen(3027,function(){
+    console.log('CORS-enabled web server listening on port 3027');
 });
